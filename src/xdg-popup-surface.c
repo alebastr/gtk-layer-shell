@@ -5,6 +5,7 @@
 #include "simple-conversions.h"
 
 #include "xdg-shell-client.h"
+#include "gdk-private.h"
 
 #include <gtk/gtk.h>
 #include <gdk/gdk.h>
@@ -160,6 +161,14 @@ xdg_popup_surface_map (CustomShellSurface *super, struct wl_surface *wl_surface)
                                      self->geom.y,
                                      self->geom.width,
                                      self->geom.height);
+
+    /* Call private GDK code to get serial for xdg_popup_grab */
+    GdkDisplay *display = gdk_window_get_display (gdk_window);
+    GdkSeat *gdk_seat = gdk_display_get_default_seat (display);
+    guint32 serial = _gdk_wayland_seat_get_last_implicit_grab_serial (gdk_seat, NULL);
+    struct wl_seat *seat = gdk_wayland_seat_get_wl_seat(gdk_seat);
+    xdg_popup_grab (self->xdg_popup, seat, serial);
+
     wl_surface_commit (wl_surface);
     wl_display_roundtrip (gdk_wayland_display_get_wl_display (gdk_display_get_default ()));
 }
